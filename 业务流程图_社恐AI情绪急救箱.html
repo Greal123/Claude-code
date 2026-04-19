@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>业务流程图 - 社恐AI情绪急救箱</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #1a1a2e; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; font-size: 26px; color: #1a1a2e; margin: 30px 0 8px; }
+        .subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 30px; }
+
+        .flow-section { background: #fff; border-radius: 14px; padding: 30px; margin-bottom: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+        .flow-section h2 { font-size: 19px; color: #2c3e50; margin: 0 0 20px; padding-bottom: 10px; border-bottom: 2px solid #ecf0f1; }
+        .flow-section h2 .badge { display: inline-block; padding: 3px 12px; border-radius: 14px; font-size: 12px; color: #fff; margin-right: 8px; vertical-align: middle; }
+
+        .flow-container { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 10px 0; overflow-x: auto; }
+        .flow-row { display: flex; align-items: center; justify-content: center; gap: 0; margin: 4px 0; flex-wrap: nowrap; }
+
+        .node { padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; text-align: center; min-width: 100px; max-width: 160px; position: relative; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+        .node-start { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border-radius: 25px; }
+        .node-end { background: linear-gradient(135deg, #e74c3c, #c0392b); color: #fff; border-radius: 25px; }
+        .node-end-green { background: linear-gradient(135deg, #11998e, #38ef7d); color: #fff; border-radius: 25px; }
+        .node-process { background: #fff; border: 2px solid #3498db; color: #2c3e50; }
+        .node-decision { background: #fff3cd; border: 2px solid #f39c12; color: #856404; transform: rotate(0deg); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); padding: 25px 15px; min-width: 130px; font-size: 11px; }
+        .node-action { background: #e8f4fd; border: 2px solid #3498db; color: #2c3e50; }
+        .node-sos { background: linear-gradient(135deg, #e74c3c, #ff6b6b); color: #fff; }
+        .node-warm { background: linear-gradient(135deg, #f39c12, #f2c94c); color: #fff; }
+        .node-green { background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; }
+        .node-purple { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; }
+        .node-gray { background: #ecf0f1; border: 2px solid #bdc3c7; color: #7f8c8d; }
+        .node-highlight { background: #fde8e8; border: 2px solid #e74c3c; color: #e74c3c; }
+
+        .arrow-down { width: 2px; height: 24px; background: #95a5a6; margin: 0 auto; position: relative; }
+        .arrow-down::after { content: '▼'; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); color: #95a5a6; font-size: 8px; }
+        .arrow-right { width: 24px; height: 2px; background: #95a5a6; position: relative; flex-shrink: 0; }
+        .arrow-right::after { content: '▶'; position: absolute; right: -6px; top: 50%; transform: translateY(-50%); color: #95a5a6; font-size: 8px; }
+        .arrow-left { width: 24px; height: 2px; background: #95a5a6; position: relative; flex-shrink: 0; }
+        .arrow-left::after { content: '◀'; position: absolute; left: -6px; top: 50%; transform: translateY(-50%); color: #95a5a6; font-size: 8px; }
+
+        .label-yes { color: #27ae60; font-size: 11px; font-weight: 700; margin: 0 4px; }
+        .label-no { color: #e74c3c; font-size: 11px; font-weight: 700; margin: 0 4px; }
+
+        .branch-container { display: flex; align-items: flex-start; justify-content: center; gap: 30px; margin: 4px 0; }
+        .branch { display: flex; flex-direction: column; align-items: center; gap: 0; }
+        .branch-label { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; margin-bottom: 6px; }
+        .branch-label.green { background: #e8f8f0; color: #27ae60; }
+        .branch-label.red { background: #fde8e8; color: #e74c3c; }
+        .branch-label.blue { background: #e8f4fd; color: #3498db; }
+        .branch-label.orange { background: #fef5e7; color: #f39c12; }
+        .branch-label.purple { background: #f4ecf7; color: #9b59b6; }
+
+        .swimlane { display: grid; grid-template-columns: 80px 1fr; gap: 0; margin: 10px 0; border: 1px solid #ecf0f1; border-radius: 10px; overflow: hidden; }
+        .swimlane-label { display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; writing-mode: vertical-lr; text-orientation: mixed; padding: 10px 5px; }
+        .swimlane-label.user { background: linear-gradient(180deg, #3498db, #2980b9); }
+        .swimlane-label.ai { background: linear-gradient(180deg, #9b59b6, #8e44ad); }
+        .swimlane-label.system { background: linear-gradient(180deg, #27ae60, #229954); }
+        .swimlane-content { padding: 15px; display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+        .step-num { display: inline-block; width: 22px; height: 22px; border-radius: 50%; background: #2c3e50; color: #fff; font-size: 11px; font-weight: 700; text-align: center; line-height: 22px; margin-right: 6px; vertical-align: middle; }
+
+        .legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 15px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
+
+        .flow-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+        .flow-table th { background: #2c3e50; color: #fff; padding: 8px 12px; text-align: left; font-size: 12px; }
+        .flow-table td { padding: 8px 12px; border-bottom: 1px solid #ecf0f1; vertical-align: top; }
+        .flow-table tr:hover td { background: #f8f9fa; }
+
+        @media (max-width: 768px) {
+            .flow-row { flex-wrap: wrap; justify-content: center; }
+            .branch-container { flex-direction: column; align-items: center; }
+            .swimlane { grid-template-columns: 50px 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<h1>🔄 业务流程图</h1>
+<p class="subtitle">社恐AI情绪急救箱 | 核心业务流程 | 2026年4月</p>
+
+<div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#667eea,#764ba2);"></div>开始/结束</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fff;border:2px solid #3498db;"></div>处理步骤</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fff3cd;border:2px solid #f39c12;"></div>判断节点</div>
+    <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#e74c3c,#ff6b6b);"></div>紧急/SOS</div>
+    <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#27ae60,#2ecc71);"></div>成功/完成</div>
+    <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#9b59b6,#8e44ad);"></div>AI处理</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ecf0f1;border:2px solid #bdc3c7;"></div>可选/外部</div>
+</div>
+
+<!-- ===== 流程1：用户注册与首次使用 ===== -->
+<div class="flow-section">
+<h2><span class="badge" style="background:#667eea;">流程1</span>用户注册与首次使用流程</h2>
+
+<div class="flow-container">
+    <div class="node node-start">用户打开App</div>
+    <div class="arrow-down"></div>
+    <div class="node node-decision">是否新用户？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label green">新用户</div>
+            <div class="node node-action">匿名注册<br>（无需手机号）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-action">社恐自评问卷<br>（5题快速评估）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-purple">AI生成个性化<br>初始画像</div>
+            <div class="arrow-down"></div>
+            <div class="node node-action">推荐核心功能<br>（基于评估结果）</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label blue">老用户</div>
+            <div class="node node-action">自动登录<br>（本地Token）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-purple">加载用户<br>历史画像与记忆</div>
+            <div class="arrow-down"></div>
+            <div class="node node-action">显示情绪趋势<br>+今日建议</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-end-green">进入首页</div>
+</div>
+
+<table class="flow-table">
+<tr><th style="width:40px;">步骤</th><th style="width:140px;">节点</th><th>说明</th><th style="width:120px;">关键指标</th></tr>
+<tr><td>1</td><td>匿名注册</td><td>支持无需手机号注册，降低社恐用户心理门槛；可选微信一键登录（不公开昵称）</td><td>注册转化率>70%</td></tr>
+<tr><td>2</td><td>社恐自评问卷</td><td>5题简化版LSAS量表，<1分钟完成；评估社交焦虑等级（轻度/中度/重度）</td><td>完成率>85%</td></tr>
+<tr><td>3</td><td>个性化初始画像</td><td>基于评估结果推荐：轻度→渐进暴露训练；中度→社交预演+认知重构；重度→优先SOS+建议专业帮助</td><td>推荐接受率>60%</td></tr>
+</table>
+</div>
+
+<!-- ===== 流程2：SOS情绪急救 ===== -->
+<div class="flow-section">
+<h2><span class="badge" style="background:#e74c3c;">流程2</span>SOS即时情绪急救流程（核心差异化）</h2>
+
+<div class="flow-container">
+    <div class="node node-start">用户触发SOS</div>
+    <div class="arrow-down"></div>
+    <div class="node node-sos" style="font-size:15px;">🚨 SOS一键急救</div>
+    <div class="arrow-down"></div>
+    <div class="node node-purple">AI识别情绪强度<br>（文字/语音输入）</div>
+    <div class="arrow-down"></div>
+    <div class="node node-decision">情绪强度？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label red">高危（自杀/自伤）</div>
+            <div class="node node-highlight">⚠️ 危机识别触发</div>
+            <div class="arrow-down"></div>
+            <div class="node node-sos">弹出24h心理热线<br>+紧急联系人</div>
+            <div class="arrow-down"></div>
+            <div class="node node-action">引导拨打热线<br>（不关闭直至确认）</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label orange">中高（焦虑发作）</div>
+            <div class="node node-warm">Step1: 54321接地法<br>（引导关注5感）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-warm">Step2: 4-7-8呼吸引导<br>（3轮降低心率20%）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-warm">Step3: 认知翻转<br>（1个替代想法）</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label blue">中低（日常焦虑）</div>
+            <div class="node node-action">AI共情倾听<br>（开放对话）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-action">引导情绪命名<br>+记录触发因素</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-purple">AI生成情绪急救记录</div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">情绪自评<br>"你现在感觉如何？"</div>
+    <div class="arrow-down"></div>
+    <div class="node node-decision">是否缓解？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label green">已缓解</div>
+            <div class="node node-green">✅ 记录成功应对<br>+正向鼓励</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label red">未缓解</div>
+            <div class="node node-action">继续对话疏导<br>/ 建议专业帮助</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-end-green">返回首页</div>
+</div>
+
+<table class="flow-table">
+<tr><th style="width:40px;">步骤</th><th style="width:140px;">节点</th><th>说明</th><th style="width:120px;">关键指标</th></tr>
+<tr><td>1</td><td>SOS一键触发</td><td>首页悬浮按钮，任何页面均可触发；无需导航，<1秒进入急救流程</td><td>SOS响应时间<1秒</td></tr>
+<tr><td>2</td><td>54321接地法</td><td>引导用户说出：5个看到的→4个摸到的→3个听到的→2个闻到的→1个尝到的</td><td>完成率>70%</td></tr>
+<tr><td>3</td><td>4-7-8呼吸引导</td><td>吸气4秒→屏息7秒→呼气8秒，3轮可降低心率20%</td><td>完成率>65%</td></tr>
+<tr><td>4</td><td>认知翻转</td><td>AI引导用户将"我肯定会搞砸"翻转为"我准备了，就算不完美也没关系"</td><td>接受率>50%</td></tr>
+<tr><td>5</td><td>危机识别</td><td>关键词检测+语义分析，识别自杀/自伤倾向，安全响应率目标100%</td><td>安全响应率100%</td></tr>
+</table>
+</div>
+
+<!-- ===== 流程3：社交预演 ===== -->
+<div class="flow-section">
+<h2><span class="badge" style="background:#3498db;">流程3</span>社交场景预演流程</h2>
+
+<div class="flow-container">
+    <div class="node node-start">用户选择"社交预演"</div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">选择社交场景</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label blue">面试</div>
+            <div class="node node-process" style="font-size:11px;">自我介绍+<br>常见面试题</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label orange">聚会</div>
+            <div class="node node-process" style="font-size:11px;">破冰寒暄+<br>话题延续</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label green">汇报</div>
+            <div class="node node-process" style="font-size:11px;">开场陈述+<br>应对提问</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label purple">自定义</div>
+            <div class="node node-process" style="font-size:11px;">用户描述<br>具体场景</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">设置难度级别<br>（简单/标准/挑战）</div>
+    <div class="arrow-down"></div>
+    <div class="node node-purple">AI生成场景对话<br>+角色扮演</div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">🔄 对话进行中<br>（AI模拟对方回应）</div>
+    <div class="arrow-down"></div>
+    <div class="node node-decision">用户卡壳？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label green">否，继续</div>
+            <div class="node node-action">对话自然推进</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label orange">是，卡壳了</div>
+            <div class="node node-warm">💡 话术提示<br>（3个可选回应）</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-decision">预演结束？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label red">提前退出</div>
+            <div class="node node-action">保存进度<br>+鼓励下次继续</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label green">完成预演</div>
+            <div class="node node-purple">AI生成预演报告<br>（表现评估+改进建议）</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">保存话术卡片<br>→可随时回顾</div>
+    <div class="arrow-down"></div>
+    <div class="node node-end-green">预演完成 ✅</div>
+</div>
+</div>
+
+<!-- ===== 流程4：认知重构 ===== -->
+<div class="flow-section">
+<h2><span class="badge" style="background:#f39c12;">流程4</span>认知重构引导流程</h2>
+
+<div class="flow-container">
+    <div class="node node-start">社交后反刍/自责</div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">记录反刍想法<br>"我在想什么？"</div>
+    <div class="arrow-down"></div>
+    <div class="node node-purple">AI分析认知偏差类型</div>
+    <div class="arrow-down"></div>
+    <div class="node node-decision">偏差类型？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label red">灾难化</div>
+            <div class="node node-process" style="font-size:11px;">"说错话=所有人<br>都看不起我"</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label orange">读心术</div>
+            <div class="node node-process" style="font-size:11px;">"他皱眉=觉得<br>我很蠢"</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label blue">焦点效应</div>
+            <div class="node node-process" style="font-size:11px;">"所有人都在<br>盯着我看"</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label purple">过度概括</div>
+            <div class="node node-process" style="font-size:11px;">"一次失败=<br>永远失败"</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-warm">AI引导提问<br>"有什么证据支持？"</div>
+    <div class="arrow-down"></div>
+    <div class="node node-warm">AI引导提问<br>"有没有其他可能？"</div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">用户写出<br>替代性想法</div>
+    <div class="arrow-down"></div>
+    <div class="node node-green">✅ 认知翻转完成<br>记录到情绪日记</div>
+    <div class="arrow-down"></div>
+    <div class="node node-end-green">返回首页</div>
+</div>
+</div>
+
+<!-- ===== 流程5：渐进暴露训练 ===== -->
+<div class="flow-section">
+<h2><span class="badge" style="background:#27ae60;">流程5</span>30天渐进暴露训练流程</h2>
+
+<div class="flow-container">
+    <div class="node node-start">用户选择"渐进训练"</div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">社交焦虑测评<br>（简化版LSAS）</div>
+    <div class="arrow-down"></div>
+    <div class="node node-purple">AI生成个性化<br>30天训练计划</div>
+    <div class="arrow-down"></div>
+
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label green">Week1 破冰周</div>
+            <div class="node node-process" style="font-size:11px;">3次低强度开口<br>（对店员说谢谢<br>电梯里点头微笑<br>群里发1条消息）</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label blue">Week2 输出周</div>
+            <div class="node node-process" style="font-size:11px;">2次30秒发言<br>+1次提问<br>（会议上附和观点<br>主动问1个问题）</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label orange">Week3 关系周</div>
+            <div class="node node-process" style="font-size:11px;">2次连续互动<br>（与同一人聊2次<br>参加1次小组活动）</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label purple">Week4 巩固周</div>
+            <div class="node node-process" style="font-size:11px;">1次轻型邀约<br>+1次复盘<br>（约朋友喝咖啡<br>写训练总结）</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+
+    <div style="background:#f8f9fa; padding:15px 20px; border-radius:10px; text-align:center; margin:6px 0; width:100%;">
+        <strong>每日循环：</strong>
+    </div>
+    <div class="flow-row" style="margin:6px 0;">
+        <div class="node node-action" style="font-size:11px;">📋 推送今日任务</div>
+        <div class="arrow-right"></div>
+        <div class="node node-action" style="font-size:11px;">👤 用户完成任务</div>
+        <div class="arrow-right"></div>
+        <div class="node node-action" style="font-size:11px;">✅ 打卡记录</div>
+        <div class="arrow-right"></div>
+        <div class="node node-green" style="font-size:11px;">🌟 正向反馈</div>
+        <div class="arrow-right"></div>
+        <div class="node node-purple" style="font-size:11px;">📊 进度更新</div>
+    </div>
+
+    <div class="arrow-down"></div>
+    <div class="node node-decision">任务完成？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label green">已完成</div>
+            <div class="node node-green">🌟 正向鼓励<br>+解锁下一任务</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label orange">未完成</div>
+            <div class="node node-warm">💪 温和鼓励<br>不惩罚，可补打卡</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label red">想放弃</div>
+            <div class="node node-action">AI共情对话<br>降低难度/暂停</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-decision">30天完成？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label green">完成</div>
+            <div class="node node-green">🏆 生成成长报告<br>+社交焦虑复测<br>+毕业证书</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label blue">继续</div>
+            <div class="node node-action">进入下一周期<br>（进阶计划）</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-end-green">训练完成/继续 🎉</div>
+</div>
+</div>
+
+<!-- ===== 流程6：订阅付费 ===== -->
+<div class="flow-section">
+<h2><span class="badge" style="background:#9b59b6;">流程6</span>订阅与付费流程</h2>
+
+<div class="flow-container">
+    <div class="node node-start">用户触发付费功能</div>
+    <div class="arrow-down"></div>
+    <div class="node node-decision">当前版本？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label green">免费版</div>
+            <div class="node node-action">弹出升级引导<br>（功能对比+7天试用）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-decision">选择版本？</div>
+            <div class="branch-container">
+                <div class="branch">
+                    <div class="branch-label blue">Pro ¥25/月</div>
+                    <div class="node node-process" style="font-size:11px;">无限倾诉+SOS<br>+社交预演+认知重构</div>
+                </div>
+                <div class="branch">
+                    <div class="branch-label purple">Premium ¥45/月</div>
+                    <div class="node node-process" style="font-size:11px;">Pro全部+渐进训练<br>+AI记忆+测评</div>
+                </div>
+            </div>
+        </div>
+        <div class="branch">
+            <div class="branch-label blue">已付费</div>
+            <div class="node node-green">直接使用功能</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">支付流程<br>（微信/支付宝）</div>
+    <div class="arrow-down"></div>
+    <div class="node node-decision">支付成功？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label green">成功</div>
+            <div class="node node-green">✅ 解锁功能<br>+欢迎引导</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label red">失败</div>
+            <div class="node node-action">重试/更换方式<br>保留免费版使用</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-end-green">使用付费功能</div>
+</div>
+</div>
+
+<!-- ===== 流程7：危机干预 ===== -->
+<div class="flow-section">
+<h2><span class="badge" style="background:#e74c3c;">流程7</span>危机干预流程（安全底线）</h2>
+
+<div class="flow-container">
+    <div class="node node-start">AI检测到危机信号</div>
+    <div class="arrow-down"></div>
+    <div class="node node-sos" style="font-size:15px;">🚨 危机识别触发</div>
+    <div class="arrow-down"></div>
+    <div class="node node-purple">AI评估危机等级</div>
+    <div class="arrow-down"></div>
+    <div class="node node-decision">危机等级？</div>
+    <div class="branch-container">
+        <div class="branch">
+            <div class="branch-label red">🔴 高危（自杀倾向）</div>
+            <div class="node node-sos">立即中断当前对话</div>
+            <div class="arrow-down"></div>
+            <div class="node node-sos">全屏弹出危机干预页</div>
+            <div class="arrow-down"></div>
+            <div class="node node-highlight">24h心理援助热线<br>（全国/本地）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-action">引导拨打热线<br>页面不关闭</div>
+            <div class="arrow-down"></div>
+            <div class="node node-gray">后台通知紧急联系人<br>（如用户已设置）</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label orange">🟡 中危（自伤想法）</div>
+            <div class="node node-warm">AI温和干预对话<br>（共情+稳定情绪）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-action">提供自助资源<br>（呼吸引导+接地法）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-action">建议寻求专业帮助<br>（提供咨询渠道）</div>
+        </div>
+        <div class="branch">
+            <div class="branch-label blue">🔵 低危（情绪低落）</div>
+            <div class="node node-action">AI持续陪伴对话<br>（共情倾听）</div>
+            <div class="arrow-down"></div>
+            <div class="node node-action">引导情绪记录<br>+正向活动建议</div>
+        </div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">记录危机事件<br>（加密存储）</div>
+    <div class="arrow-down"></div>
+    <div class="node node-action">后续48h跟进<br>（每日关怀消息）</div>
+    <div class="arrow-down"></div>
+    <div class="node node-end-green">危机干预完成</div>
+</div>
+
+<table class="flow-table">
+<tr><th style="width:100px;">危机等级</th><th>触发条件</th><th>AI响应</th><th>人工介入</th></tr>
+<tr><td><span class="tag tag-red">高危</span></td><td>明确表达自杀/自伤计划；多次出现相关关键词</td><td>立即中断→全屏热线→不关闭页面</td><td>通知紧急联系人；如已设置则触发</td></tr>
+<tr><td><span class="tag tag-orange">中危</span></td><td>暗示不想活；表达绝望感；提及自伤但无计划</td><td>温和干预→自助资源→建议专业帮助</td><td>48h内跟进；记录加密存储</td></tr>
+<tr><td><span class="tag tag-blue">低危</span></td><td>情绪低落；表达孤独/无助；社交回避加剧</td><td>持续陪伴→情绪记录→正向活动建议</td><td>24h关怀消息；趋势监控</td></tr>
+</table>
+</div>
+
+<!-- ===== 流程8：核心业务总览 ===== -->
+<div class="flow-section">
+<h2><span class="badge" style="background:#2c3e50;">总览</span>核心业务流程全景图</h2>
+
+<div style="background:#f8f9fa; padding:20px; border-radius:12px; margin:10px 0;">
+<div style="text-align:center; margin-bottom:15px; font-weight:700; font-size:15px; color:#2c3e50;">社恐AI情绪急救箱 — 业务全景</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px;">
+
+<div style="background:#fff; border-radius:10px; padding:16px; border-top:4px solid #e74c3c;">
+<h4 style="color:#e74c3c; margin-top:0; font-size:14px;">🚨 即时急救层</h4>
+<p style="font-size:12px; margin:6px 0;">用户焦虑发作时</p>
+<div style="font-size:11px; color:#888; line-height:1.8;">
+① SOS一键触发<br>
+② 情绪强度识别<br>
+③ 分级应对（高危→热线 / 中高→3步急救 / 低→对话）<br>
+④ 情绪自评反馈<br>
+⑤ 记录+正向鼓励
+</div>
+</div>
+
+<div style="background:#fff; border-radius:10px; padding:16px; border-top:4px solid #3498db;">
+<h4 style="color:#3498db; margin-top:0; font-size:14px;">🎭 场景预演层</h4>
+<p style="font-size:12px; margin:6px 0;">社交前紧张时</p>
+<div style="font-size:11px; color:#888; line-height:1.8;">
+① 选择社交场景<br>
+② 设置难度级别<br>
+③ AI模拟对话<br>
+④ 卡壳时话术提示<br>
+⑤ 预演报告+话术卡片
+</div>
+</div>
+
+<div style="background:#fff; border-radius:10px; padding:16px; border-top:4px solid #f39c12;">
+<h4 style="color:#f39c12; margin-top:0; font-size:14px;">🧠 认知重构层</h4>
+<p style="font-size:12px; margin:6px 0;">社交后反刍时</p>
+<div style="font-size:11px; color:#888; line-height:1.8;">
+① 记录反刍想法<br>
+② AI识别认知偏差<br>
+③ 引导提问（证据？其他可能？）<br>
+④ 写出替代想法<br>
+⑤ 记录到情绪日记
+</div>
+</div>
+
+<div style="background:#fff; border-radius:10px; padding:16px; border-top:4px solid #27ae60;">
+<h4 style="color:#27ae60; margin-top:0; font-size:14px;">📈 渐进训练层</h4>
+<p style="font-size:12px; margin:6px 0;">长期改善时</p>
+<div style="font-size:11px; color:#888; line-height:1.8;">
+① 社交焦虑测评<br>
+② 生成30天计划<br>
+③ 每日任务+打卡<br>
+④ 正向反馈+进度追踪<br>
+⑤ 30天成长报告
+</div>
+</div>
+
+<div style="background:#fff; border-radius:10px; padding:16px; border-top:4px solid #9b59b6;">
+<h4 style="color:#9b59b6; margin-top:0; font-size:14px;">💬 日常陪伴层</h4>
+<p style="font-size:12px; margin:6px 0;">日常倾诉时</p>
+<div style="font-size:11px; color:#888; line-height:1.8;">
+① AI匿名倾诉<br>
+② 情绪识别+记录<br>
+③ 情绪趋势报告<br>
+④ AI长期记忆<br>
+⑤ 社恐社区（匿名互助）
+</div>
+</div>
+
+<div style="background:#fff; border-radius:10px; padding:16px; border-top:4px solid #2c3e50;">
+<h4 style="color:#2c3e50; margin-top:0; font-size:14px;">🛡️ 安全保障层</h4>
+<p style="font-size:12px; margin:6px 0;">全程贯穿</p>
+<div style="font-size:11px; color:#888; line-height:1.8;">
+① 危机识别（关键词+语义）<br>
+② 分级干预（高/中/低危）<br>
+③ 24h心理热线<br>
+④ 隐私加密存储<br>
+⑤ 48h后续跟进
+</div>
+</div>
+
+</div>
+
+<div style="text-align:center; margin-top:18px; padding:14px; background:#fff; border-radius:8px;">
+<strong style="font-size:13px;">用户旅程核心路径：</strong><br>
+<span style="font-size:12px; color:#888;">
+焦虑触发 → SOS即时急救 → 社交预演准备 → 社交后认知重构 → 渐进暴露训练 → 社交能力提升 → 减少AI依赖 🎯
+</span>
+</div>
+</div>
+</div>
+
+</div>
+</body>
+</html>
