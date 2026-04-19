@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt 与 Context 完整体系化总结</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        h1 { color: #1a1a1a; font-size: 2.2em; margin-bottom: 10px; }
+
+        .subtitle { color: #7f8c8d; font-size: 1.1em; }
+
+        .section-nav {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .section-nav h4 { margin-top: 0; margin-bottom: 15px; color: #2c3e50; }
+
+        .nav-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .nav-link {
+            padding: 10px 15px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            color: #2c3e50;
+            font-size: 0.95em;
+        }
+
+        .nav-link:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .nav-link.active-nav { color: white; font-weight: 600; }
+
+        .subsection { display: none; }
+        .subsection.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            text-decoration: none;
+            font-size: 0.95em;
+            border: none;
+        }
+
+        .back-btn:hover { background: #2980b9; transform: translateX(-3px); }
+
+        .topic-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .topic-card {
+            background: white;
+            padding: 30px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #e0e0e0;
+        }
+
+        .topic-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+
+        .topic-card.blue { border-color: #3498db; }
+        .topic-card.blue:hover { border-color: #2980b9; box-shadow: 0 10px 25px rgba(52,152,219,0.2); }
+        .topic-card.green { border-color: #27ae60; }
+        .topic-card.green:hover { border-color: #229954; box-shadow: 0 10px 25px rgba(39,174,96,0.2); }
+        .topic-card.orange { border-color: #f39c12; }
+        .topic-card.orange:hover { border-color: #e67e22; box-shadow: 0 10px 25px rgba(243,156,18,0.2); }
+        .topic-card.red { border-color: #e74c3c; }
+        .topic-card.red:hover { border-color: #c0392b; box-shadow: 0 10px 25px rgba(231,76,60,0.2); }
+        .topic-card.purple { border-color: #9b59b6; }
+        .topic-card.purple:hover { border-color: #8e44ad; box-shadow: 0 10px 25px rgba(155,89,182,0.2); }
+        .topic-card.teal { border-color: #1abc9c; }
+        .topic-card.teal:hover { border-color: #16a085; box-shadow: 0 10px 25px rgba(26,188,156,0.2); }
+        .topic-card.indigo { border-color: #34495e; }
+        .topic-card.indigo:hover { border-color: #2c3e50; box-shadow: 0 10px 25px rgba(52,73,94,0.2); }
+
+        .topic-card:nth-child(7) { grid-column: 1 / -1; max-width: 50%; margin: 0 auto; }
+
+        .topic-number { font-size: 3em; font-weight: bold; opacity: 0.12; position: absolute; right: 20px; top: 10px; }
+        .topic-card.blue .topic-number { color: #3498db; }
+        .topic-card.green .topic-number { color: #27ae60; }
+        .topic-card.orange .topic-number { color: #f39c12; }
+        .topic-card.red .topic-number { color: #e74c3c; }
+        .topic-card.purple .topic-number { color: #9b59b6; }
+        .topic-card.teal .topic-number { color: #1abc9c; }
+        .topic-card.indigo .topic-number { color: #34495e; }
+
+        .topic-title { font-size: 1.5em; font-weight: bold; margin-bottom: 10px; position: relative; z-index: 1; color: #2c3e50; }
+        .topic-desc { font-size: 0.95em; line-height: 1.6; position: relative; z-index: 1; color: #7f8c8d; }
+
+        .content-section { display: none; }
+        .content-section.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { color: #2c3e50; font-size: 1.6em; margin-top: 30px; margin-bottom: 20px; padding-left: 15px; border-left: 5px solid #3498db; }
+        h3 { color: #34495e; font-size: 1.3em; margin-top: 25px; margin-bottom: 15px; }
+        h4 { color: #555; font-size: 1.1em; margin-top: 20px; margin-bottom: 10px; }
+        p { margin-bottom: 12px; text-align: justify; }
+        ul, ol { margin-left: 25px; margin-bottom: 15px; }
+        li { margin-bottom: 8px; }
+
+        .formula-box {
+            background: linear-gradient(135deg, #e8f4f8 0%, #d6eaf8 100%);
+            border-left: 4px solid #3498db;
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .formula { font-size: 1.4em; font-weight: bold; color: #2980b9; text-align: center; margin: 10px 0; letter-spacing: 1px; }
+
+        .comparison-table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .comparison-table th { padding: 12px 15px; text-align: left; font-weight: 600; color: white; }
+        .comparison-table td { padding: 12px 15px; border: 1px solid #eee; }
+        .comparison-table tr:nth-child(even) { background: #f8f9fa; }
+
+        .highlight-box { background: #fff9e6; border-left: 4px solid #f39c12; padding: 15px 20px; margin: 15px 0; border-radius: 6px; }
+        .success-box { background: #e8f8f5; border-left: 4px solid #27ae60; padding: 15px 20px; margin: 15px 0; border-radius: 6px; }
+        .error-box { background: #fdeaea; border-left: 4px solid #e74c3c; padding: 15px 20px; margin: 15px 0; border-radius: 6px; }
+        .info-box { background: #eaf2f8; border-left: 4px solid #3498db; padding: 15px 20px; margin: 15px 0; border-radius: 6px; }
+
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            border-radius: 8px;
+            padding: 18px 20px;
+            margin: 15px 0;
+            font-family: 'Consolas', 'Courier New', monospace;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-size: 0.92em;
+            line-height: 1.6;
+        }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+
+        .card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e8e8e8;
+            transition: box-shadow 0.3s;
+        }
+        .card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        .card h4 { margin-top: 0; }
+
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.85em; font-weight: 600; margin-right: 6px; }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-error { background: #f8d7da; color: #721c24; }
+        .badge-info { background: #d1ecf1; color: #0c5460; }
+
+        .quadrant-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 25px 0; }
+
+        .quadrant {
+            padding: 22px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .quadrant:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
+        .quadrant h4 { margin-top: 0; font-size: 1.15em; }
+
+        .flow-container { margin: 25px 0; }
+
+        .flow-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .flow-number {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 1.1em;
+        }
+
+        .flow-content {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 1px solid #e8e8e8;
+        }
+
+        .flow-content strong { display: block; margin-bottom: 5px; font-size: 1.05em; }
+
+        .summary-table { width: 100%; margin: 25px 0; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .summary-table th { padding: 12px 15px; text-align: left; color: white; }
+        .summary-table td { padding: 12px 15px; border: 1px solid #eee; background: white; }
+        .summary-table tr:nth-child(even) td { background: #f8f9fa; }
+
+        .tag { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 0.85em; font-weight: 600; margin-right: 6px; }
+        .tag-blue { background: #d6eaf8; color: #2471a3; }
+        .tag-green { background: #d5f5e3; color: #1e8449; }
+        .tag-orange { background: #fdebd0; color: #ca6f1e; }
+        .tag-red { background: #fadbd8; color: #c0392b; }
+        .tag-purple { background: #e8daef; color: #7d3c98; }
+        .tag-teal { background: #d1f2eb; color: #148f77; }
+        .tag-indigo { background: #d5d8dc; color: #2c3e50; }
+
+        .overview-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #eef1f5 100%);
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border: 1px solid #e8e8e8;
+        }
+        .overview-summary h3 { margin-top: 0; color: #2c3e50; }
+
+        .flow-diagram {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+            overflow-x: auto;
+        }
+
+        .flow-diagram .flow-arrow { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .flow-diagram .flow-node { background: white; border: 2px solid #3498db; padding: 8px 14px; border-radius: 6px; font-size: 0.9em; font-weight: 600; color: #2c3e50; white-space: nowrap; }
+        .flow-diagram .flow-node.highlight { background: #3498db; color: white; }
+        .flow-diagram .arrow { color: #3498db; font-size: 1.2em; font-weight: bold; }
+
+        .nav-link.blue-nav:hover, .nav-link.blue-nav.active-nav { background: #3498db; color: white; border-color: #3498db; }
+        .nav-link.green-nav:hover, .nav-link.green-nav.active-nav { background: #27ae60; color: white; border-color: #27ae60; }
+        .nav-link.orange-nav:hover, .nav-link.orange-nav.active-nav { background: #f39c12; color: white; border-color: #f39c12; }
+        .nav-link.red-nav:hover, .nav-link.red-nav.active-nav { background: #e74c3c; color: white; border-color: #e74c3c; }
+        .nav-link.purple-nav:hover, .nav-link.purple-nav.active-nav { background: #9b59b6; color: white; border-color: #9b59b6; }
+        .nav-link.teal-nav:hover, .nav-link.teal-nav.active-nav { background: #1abc9c; color: white; border-color: #1abc9c; }
+        .nav-link.indigo-nav:hover, .nav-link.indigo-nav.active-nav { background: #34495e; color: white; border-color: #34495e; }
+
+        .content-section h1 { font-size: 1.8em; padding-left: 15px; border-left: 5px solid #3498db; margin-bottom: 20px; }
+        .content-section.topic2 h1 { border-left-color: #27ae60; }
+        .content-section.topic3 h1 { border-left-color: #f39c12; }
+        .content-section.topic4 h1 { border-left-color: #e74c3c; }
+        .content-section.topic5 h1 { border-left-color: #9b59b6; }
+        .content-section.topic6 h1 { border-left-color: #1abc9c; }
+        .content-section.topic7 h1 { border-left-color: #34495e; }
+
+        .content-section.topic2 h2 { border-left-color: #27ae60; }
+        .content-section.topic3 h2 { border-left-color: #f39c12; }
+        .content-section.topic4 h2 { border-left-color: #e74c3c; }
+        .content-section.topic5 h2 { border-left-color: #9b59b6; }
+        .content-section.topic6 h2 { border-left-color: #1abc9c; }
+        .content-section.topic7 h2 { border-left-color: #34495e; }
+
+        .content-section.topic2 .formula-box { border-left-color: #27ae60; background: linear-gradient(135deg, #e8f8f5 0%, #d5f5e3 100%); }
+        .content-section.topic2 .formula { color: #229954; }
+        .content-section.topic3 .formula-box { border-left-color: #f39c12; background: linear-gradient(135deg, #fef9e7 0%, #fdebd0 100%); }
+        .content-section.topic3 .formula { color: #d68910; }
+        .content-section.topic4 .formula-box { border-left-color: #e74c3c; background: linear-gradient(135deg, #fdedec 0%, #fadbd8 100%); }
+        .content-section.topic4 .formula { color: #c0392b; }
+        .content-section.topic5 .formula-box { border-left-color: #9b59b6; background: linear-gradient(135deg, #f5eef8 0%, #e8daef 100%); }
+        .content-section.topic5 .formula { color: #7d3c98; }
+        .content-section.topic6 .formula-box { border-left-color: #1abc9c; background: linear-gradient(135deg, #e8f6f3 0%, #d1f2eb 100%); }
+        .content-section.topic6 .formula { color: #148f77; }
+        .content-section.topic7 .formula-box { border-left-color: #34495e; background: linear-gradient(135deg, #eaecee 0%, #d5d8dc 100%); }
+        .content-section.topic7 .formula { color: #2c3e50; }
+
+        .content-section.topic2 .comparison-table th { background: #27ae60; }
+        .content-section.topic3 .comparison-table th { background: #f39c12; }
+        .content-section.topic4 .comparison-table th { background: #e74c3c; }
+        .content-section.topic5 .comparison-table th { background: #9b59b6; }
+        .content-section.topic6 .summary-table th { background: #1abc9c; }
+        .content-section.topic7 .summary-table th { background: #34495e; }
+
+        strong { color: #2c3e50; }
+
+        @media (max-width: 768px) {
+            .container { padding: 20px; }
+            h1 { font-size: 1.8em; }
+            h2 { font-size: 1.4em; }
+            .grid-2, .quadrant-grid { grid-template-columns: 1fr; }
+            .topic-grid { grid-template-columns: 1fr; }
+            .topic-card { padding: 20px; }
+            .topic-card:nth-child(7) { max-width: 100%; }
+            .nav-links { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 首页 -->
+        <div id="home-view">
+            <div class="header">
+                <h1>Prompt 与 Context 完整体系化总结</h1>
+                <div class="subtitle">从底层逻辑到实践流程的完整知识体系</div>
+            </div>
+
+            <div class="topic-grid">
+                <div class="topic-card blue" onclick="showContent('topic1')">
+                    <div class="topic-number">01</div>
+                    <div class="topic-title">核心底层逻辑</div>
+                    <div class="topic-desc">AI效果的本质公式与人机沟通的表达三要素</div>
+                </div>
+                <div class="topic-card green" onclick="showContent('topic2')">
+                    <div class="topic-number">02</div>
+                    <div class="topic-title">Prompt 工程原则</div>
+                    <div class="topic-desc">基础表达原则、结构化设计、思维链引导与少样本提示</div>
+                </div>
+                <div class="topic-card orange" onclick="showContent('topic3')">
+                    <div class="topic-number">03</div>
+                    <div class="topic-title">Context 核心体系</div>
+                    <div class="topic-desc">上下文定义、演进流程、窗口优化与增强技术</div>
+                </div>
+                <div class="topic-card red" onclick="showContent('topic4')">
+                    <div class="topic-number">04</div>
+                    <div class="topic-title">应用场景矩阵</div>
+                    <div class="topic-desc">四象限模型：学习、助理、共创、投喂</div>
+                </div>
+                <div class="topic-card purple" onclick="showContent('topic5')">
+                    <div class="topic-number">05</div>
+                    <div class="topic-title">乔哈里视窗理论</div>
+                    <div class="topic-desc">人际沟通模型与Prompt信息传递优化</div>
+                </div>
+                <div class="topic-card teal" onclick="showContent('topic6')">
+                    <div class="topic-number">06</div>
+                    <div class="topic-title">知识点速览</div>
+                    <div class="topic-desc">核心概念快速查阅与总结</div>
+                </div>
+                <div class="topic-card indigo" onclick="showContent('topic7')">
+                    <div class="topic-number">07</div>
+                    <div class="topic-title">设计黄金流程</div>
+                    <div class="topic-desc">Prompt设计的7步实践指南</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主题1：核心底层逻辑 -->
+        <div id="topic1" class="content-section topic1">
+            <a class="back-btn" onclick="showHome()">← 返回首页</a>
+            <h1>一、核心底层逻辑：AI效果的本质公式</h1>
+
+            <div class="overview-summary">
+                <h3>总览</h3>
+                <p>理解AI效果的本质，需要从两个维度切入：<strong>效果公式</strong>揭示AI输出的决定因素，<strong>表达三要素</strong>揭示人机沟通的信息传递机制。两者共同构成Prompt工程的底层理论基础。</p>
+            </div>
+
+            <div class="section-nav">
+                <h4>选择查看内容：</h4>
+                <div class="nav-links">
+                    <div class="nav-link blue-nav active-nav" onclick="showSubsection('topic1-sub1', this)">1. 效果公式</div>
+                    <div class="nav-link blue-nav" onclick="showSubsection('topic1-sub2', this)">2. 表达三要素</div>
+                </div>
+            </div>
+
+            <div id="topic1-sub1" class="subsection active">
+                <h2>1. 效果公式</h2>
+                <div class="formula-box">
+                    <div class="formula">AI效果 = LLM × (Task + Prompt)</div>
+                    <ul>
+                        <li><strong>LLM</strong>：大语言模型的基础能力（由参数量、训练数据、架构决定，是上限）</li>
+                        <li><strong>Task</strong>：明确的任务目标（用户的真实需求）</li>
+                        <li><strong>Prompt</strong>：将任务转化为模型可理解的指令，是释放模型能力的关键</li>
+                    </ul>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>LLM — 能力上限</h4>
+                        <p>由模型的参数量、训练数据规模与质量、网络架构决定。它是AI效果的「天花板」，决定了模型能理解多复杂的指令、能生成多高质量的内容。</p>
+                    </div>
+                    <div class="card">
+                        <h4>Task + Prompt — 能力释放</h4>
+                        <p>即使拥有强大的LLM，如果Task模糊或Prompt低效，模型能力也无法充分释放。Prompt是连接用户意图与模型能力的「钥匙」。</p>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <strong>核心结论：</strong>Prompt 是连接用户意图与模型能力的桥梁，Context 是 Prompt 的核心输入载体
+                </div>
+            </div>
+
+            <div id="topic1-sub2" class="subsection">
+                <h2>2. 人机沟通的本质：表达三要素</h2>
+                <div class="formula-box">
+                    <div class="formula">表达 = 本意 + 文意 + 解意</div>
+                    <ul>
+                        <li><strong>本意</strong>：用户的真实需求（由经验、词汇、知识构成）</li>
+                        <li><strong>文意</strong>：Prompt 本身（编码过程，将本意转化为模型可理解的文本）</li>
+                        <li><strong>解意</strong>：模型对 Prompt 的理解与执行（解码过程，最终输出结果）</li>
+                    </ul>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>编码过程：本意 → 文意</h4>
+                        <p>用户将脑海中的真实需求（本意）转化为文字描述（文意/Prompt）。这一步的质量取决于用户的表达能力、对任务的理解深度以及对模型工作机制的认知。</p>
+                    </div>
+                    <div class="card">
+                        <h4>解码过程：文意 → 解意</h4>
+                        <p>模型读取Prompt（文意）后进行理解与执行，产生输出（解意）。模型的理解可能存在偏差，因此需要Prompt尽量精准、无歧义。</p>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <strong>核心要求：</strong>Prompt 必须精准、无歧义，最大化「本意」与「解意」的一致性
+                </div>
+
+                <div class="info-box">
+                    <strong>实践启示：</strong>当AI输出不符合预期时，首先检查「本意→文意」的编码是否有信息丢失，其次检查「文意→解意」的解码是否存在歧义，而非简单归因于模型能力不足。
+                </div>
+            </div>
+        </div>
+
+        <!-- 主题2：Prompt 工程原则 -->
+        <div id="topic2" class="content-section topic2">
+            <a class="back-btn" onclick="showHome()">← 返回首页</a>
+            <h1>二、Prompt 工程核心原则与设计规范</h1>
+
+            <div class="overview-summary">
+                <h3>总览</h3>
+                <p>Prompt工程包含四大核心模块：<strong>基础表达原则</strong>（直接提问、正向描述）、<strong>结构化设计</strong>（标准模板与Markdown规范）、<strong>思维链引导</strong>（分步推理）、<strong>少样本提示</strong>（ICL上下文学习）。从原则到技术，层层递进。</p>
+            </div>
+
+            <div class="section-nav">
+                <h4>选择查看内容：</h4>
+                <div class="nav-links">
+                    <div class="nav-link green-nav active-nav" onclick="showSubsection('topic2-sub1', this)">1. 基础表达原则</div>
+                    <div class="nav-link green-nav" onclick="showSubsection('topic2-sub2', this)">2. 结构化设计</div>
+                    <div class="nav-link green-nav" onclick="showSubsection('topic2-sub3', this)">3. 思维链引导</div>
+                    <div class="nav-link green-nav" onclick="showSubsection('topic2-sub4', this)">4. 少样本提示</div>
+                </div>
+            </div>
+
+            <div id="topic2-sub1" class="subsection active">
+                <h2>1. 基础表达原则</h2>
+
+                <h3>（1）直接提问，删除冗余礼貌用语</h3>
+                <div class="highlight-box">
+                    <strong>核心逻辑：</strong>礼貌用语（请您、麻烦、辛苦、谢谢）会稀释核心指令，降低模型对任务的聚焦度
+                </div>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th style="background:#27ae60;">错误（冗余礼貌版）</th>
+                            <th style="background:#27ae60;">正确（直接指令版）</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge badge-error">❌</span>请问你能不能告诉我2024年诺贝尔物理学奖的得主是谁呀？</td>
+                            <td><span class="badge badge-success">✅</span>2024 年诺贝尔物理学奖得主</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-error">❌</span>麻烦你帮我把这段文字翻译成英文可以吗？内容是:[文本]</td>
+                            <td><span class="badge badge-success">✅</span>翻译这段文字为英文:[文本]</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>（2）正向提问，避免负面词语</h3>
+                <div class="highlight-box">
+                    <strong>核心逻辑：</strong>大模型对「否定词」的理解存在偏差，负面指令会干扰模型对目标的聚焦
+                </div>
+
+                <div class="error-box">
+                    <strong>错误示例：</strong>别太长、不要不像人一样、不要太专业 <span class="badge badge-error">❌</span>
+                </div>
+
+                <div class="success-box">
+                    <strong>正确示例：</strong>写一段护手霜的种草文案，要口语化，像和闺蜜聊天，控制在150字以内 <span class="badge badge-success">✅</span>
+                </div>
+
+                <div class="highlight-box">
+                    <strong>核心要求：</strong>用正向描述明确目标，而非用否定词限制行为
+                </div>
+            </div>
+
+            <div id="topic2-sub2" class="subsection">
+                <h2>2. 结构化 Prompt 设计</h2>
+
+                <h3>（1）标准通用模板（提示词库通用结构）</h3>
+                <div class="code-block"># 角色: 角色名称
+角色概述和主要职责的一句话描述
+
+## 目标:
+角色的工作目标（建议聚焦1-2个，可分点列出）
+
+## 技能:
+1. 为了实现目标，角色需要具备的技能1
+2. 为了实现目标，角色需要具备的技能2
+3. ...
+
+## 工作流:
+1. 描述角色工作流程的第一步
+2. 描述角色工作流程的第二步
+3. ...</div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>适配场景</h4>
+                        <p>通用任务、角色扮演、知识库问答、插件调用等全场景</p>
+                    </div>
+                    <div class="card">
+                        <h4>核心优势</h4>
+                        <p>层级清晰、无歧义，让模型精准理解角色、任务、输出要求</p>
+                    </div>
+                </div>
+
+                <h3>（2）Markdown 语法规范</h3>
+                <div class="info-box">
+                    <strong>核心价值：</strong>用层级结构（#/##）、列表、粗体等，强化指令的结构化，提升模型理解效率
+                </div>
+
+                <div class="code-block"># 角色:你是一位资深律师
+
+## 任务:分析以下合同条款的法律风险
+1. 条款一:…
+2. 条款二:…
+
+## 输出要求:
+- 分点列出风险
+- 重要风险用**粗体**标注
+- 提供规避建议</div>
+            </div>
+
+            <div id="topic2-sub3" class="subsection">
+                <h2>3. 思维链引导：分步思考 Prompt</h2>
+
+                <div class="info-box">
+                    <strong>核心逻辑：</strong>引导模型按步骤推理，避免跳跃式输出，提升结果的逻辑性与准确性
+                </div>
+
+                <h3>示例：电商AI客服Prompt设计</h3>
+                <div class="code-block">任务: 设计电商AI客服的基础Prompt模板
+
+请按以下步骤思考并输出:
+1. 先梳理电商AI客服的3个核心用户场景(比如咨询物流、售后、商品参数)
+2. 针对每个场景，梳理用户的核心需求(比如物流场景的需求是「快速知道物流状态」)
+3. 基于场景和需求，设计对应的Prompt模板，每个模板不超过50字</div>
+
+                <div class="highlight-box">
+                    <strong>适用场景：</strong>复杂任务、推理类任务、多步骤任务
+                </div>
+
+                <div class="success-box">
+                    <strong>实践技巧：</strong>在Prompt中明确写出「请按以下步骤思考并输出」，并编号列出每一步，模型会严格按步骤输出，减少遗漏和跳跃。
+                </div>
+            </div>
+
+            <div id="topic2-sub4" class="subsection">
+                <h2>4. 少样本提示（ICL 上下文学习）</h2>
+
+                <div class="info-box">
+                    <strong>核心技术：</strong>ICL（In-Context Learning，上下文学习），大模型通过少量示例学习任务格式，无需微调
+                </div>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th style="background:#27ae60;">提示类型</th>
+                            <th style="background:#27ae60;">示例数量</th>
+                            <th style="background:#27ae60;">适用场景</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Zero-Shot Prompting（零样本）</strong></td>
+                            <td>0个</td>
+                            <td>简单、通用任务，模型已具备基础能力</td>
+                        </tr>
+                        <tr>
+                            <td><strong>One-Shot Prompting（单样本）</strong></td>
+                            <td>1个</td>
+                            <td>格式要求明确，仅需1个示例即可对齐</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Few-Shot Prompting（少样本）</strong></td>
+                            <td>2-5个</td>
+                            <td>复杂格式、垂直领域任务，提升输出一致性</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="highlight-box">
+                    <strong>与涌现能力关联：</strong>少样本学习是大模型的核心涌现能力，参数量≥10B时性能大幅提升
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>Zero-Shot 适用情况</h4>
+                        <p>当任务足够通用（如翻译、摘要），模型预训练已覆盖该能力时，无需示例即可完成。优点是Prompt简洁，缺点是对格式控制较弱。</p>
+                    </div>
+                    <div class="card">
+                        <h4>Few-Shot 适用情况</h4>
+                        <p>当任务格式复杂或属于垂直领域时，2-5个示例可显著提升输出的一致性和准确性。示例越多，格式对齐越精确，但Prompt也越长。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主题3：Context 核心体系 -->
+        <div id="topic3" class="content-section topic3">
+            <a class="back-btn" onclick="showHome()">← 返回首页</a>
+            <h1>三、Context（上下文）核心体系</h1>
+
+            <div class="overview-summary">
+                <h3>总览</h3>
+                <p>Context是Prompt的核心输入载体，涵盖<strong>定义与作用</strong>、<strong>大模型流程中的演进</strong>（3.0→4.0）、<strong>窗口优化</strong>与<strong>增强技术</strong>（Query改写、多路检索）。理解Context体系，是掌握RAG和长上下文应用的关键。</p>
+            </div>
+
+            <div class="section-nav">
+                <h4>选择查看内容：</h4>
+                <div class="nav-links">
+                    <div class="nav-link orange-nav active-nav" onclick="showSubsection('topic3-sub1', this)">1. 定义与作用</div>
+                    <div class="nav-link orange-nav" onclick="showSubsection('topic3-sub2', this)">2. Context 演进</div>
+                    <div class="nav-link orange-nav" onclick="showSubsection('topic3-sub3', this)">3. 窗口优化</div>
+                    <div class="nav-link orange-nav" onclick="showSubsection('topic3-sub4', this)">4. 增强技术</div>
+                </div>
+            </div>
+
+            <div id="topic3-sub1" class="subsection active">
+                <h2>1. Context 定义与核心作用</h2>
+
+                <div class="formula-box">
+                    <strong>定义：</strong>模型生成回答时可参考的全部信息，包括历史对话、外部知识库、任务背景、用户画像等，是Prompt的核心输入
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>消解指代</h4>
+                        <p>补充多轮对话上下文，让模型理解「它」「这个」等指代内容。例如用户说「把它改一下」，Context中的历史对话可明确「它」指代什么。</p>
+                    </div>
+                    <div class="card">
+                        <h4>知识增强</h4>
+                        <p>通过RAG注入外部知识库、业务文档，弥补模型预训练知识的时效性/垂直性不足。例如注入最新财报数据，让模型基于事实回答。</p>
+                    </div>
+                    <div class="card">
+                        <h4>行为约束</h4>
+                        <p>通过历史对话保持角色一致性、输出风格一致性。例如前文设定了「专业律师」角色，Context确保后续回答保持专业口吻。</p>
+                    </div>
+                    <div class="card">
+                        <h4>任务补全</h4>
+                        <p>提供任务背景、数据、规则，让模型精准理解任务边界。例如提供产品参数表，让模型基于真实数据生成推荐文案。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="topic3-sub2" class="subsection">
+                <h2>2. 大模型流程中的 Context 演进</h2>
+
+                <h3>（1）LLM 3.0 流程（无RAG）</h3>
+                <div class="flow-diagram">
+                    <div class="flow-arrow">
+                        <span class="flow-node">Context Window</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">Query</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">System Prompt</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">ICL</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">Chat History</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">LLM</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">Summary</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">CoT草稿</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">Response</span>
+                    </div>
+                </div>
+                <div class="info-box">
+                    <strong>Context 仅包含：</strong>上下文窗口、系统提示、少样本示例、聊天历史
+                </div>
+
+                <h3>（2）LLM 4.0 流程（RAG增强）</h3>
+                <div class="flow-diagram">
+                    <div class="flow-arrow">
+                        <span class="flow-node">Context Window</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">Query</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">System Prompt</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">ICL</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">Chat History</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">Summary</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">CoT草稿</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node highlight">Chunks</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">LLM</span>
+                        <span class="arrow">→</span>
+                        <span class="flow-node">Response</span>
+                    </div>
+                </div>
+                <div class="success-box">
+                    <strong>核心升级：</strong>新增 Chunks（检索到的上下文片段），通过RAG将外部知识注入Context，实现「长期记忆」与「知识外挂」
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>3.0 的局限</h4>
+                        <p>Context仅来源于对话历史和系统提示，无法获取模型预训练数据之外的知识，对时效性信息和垂直领域知识支持不足。</p>
+                    </div>
+                    <div class="card">
+                        <h4>4.0 的突破</h4>
+                        <p>通过RAG检索外部知识库，将相关Chunks注入Context，使模型能够基于最新、最专业的知识生成回答，突破了预训练数据的时效性限制。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="topic3-sub3" class="subsection">
+                <h2>3. Context 窗口与优化</h2>
+
+                <div class="formula-box">
+                    <strong>Context Window（上下文窗口）：</strong>模型单次可处理的最大Token数量，是Context承载能力的上限
+                </div>
+
+                <ul>
+                    <li><strong>核心影响：</strong>决定Prompt可注入的历史对话、外部知识、任务指令的总量，是长文档、多轮对话的核心瓶颈</li>
+                    <li><strong>优化方向：</strong>上下文压缩、RAG检索、分层分块、Query改写，最大化有效Context占比</li>
+                </ul>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>上下文压缩</h4>
+                        <p>对历史对话进行摘要压缩，保留关键信息，减少Token占用。例如将10轮对话压缩为1段摘要。</p>
+                    </div>
+                    <div class="card">
+                        <h4>RAG检索</h4>
+                        <p>不将全部文档注入Context，而是按Query相关性检索最相关的片段，精准注入所需知识。</p>
+                    </div>
+                    <div class="card">
+                        <h4>分层分块</h4>
+                        <p>将长文档按语义段落分块，按需加载相关块，避免一次性注入过多无关内容。</p>
+                    </div>
+                    <div class="card">
+                        <h4>Query改写</h4>
+                        <p>优化查询语句，提升检索精准度，确保召回的Context与任务高度相关。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="topic3-sub4" class="subsection">
+                <h2>4. Context 增强技术</h2>
+
+                <h3>（1）Query 改写</h3>
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>目标</h4>
+                        <p>结合对话历史，将模糊查询转为语义完整的查询，消解歧义、补全信息</p>
+                    </div>
+                    <div class="card">
+                        <h4>策略</h4>
+                        <p>事实补全、意图拆解、领域标签强化、上下文拼接</p>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <strong>作用：</strong>提升Context的相关性与有效性，减少无效信息
+                </div>
+
+                <h3>（2）多路查询与检索</h3>
+                <div class="code-block">流程：多路召回相关Context → 结果合并 → 去重（以文档唯一ID为键）</div>
+                <ul>
+                    <li><strong>核心指标：</strong>召回率≥90%、准确率≥85%</li>
+                    <li><strong>作用：</strong>为Prompt提供高质量、高相关的Context输入</li>
+                </ul>
+
+                <div class="info-box">
+                    <strong>多路召回的意义：</strong>单一检索方式可能遗漏相关内容，通过多种检索策略（关键词检索、语义检索、混合检索）并行召回，再合并去重，可最大化召回覆盖率，确保Context的完整性。
+                </div>
+            </div>
+        </div>
+
+        <!-- 主题4：应用场景矩阵 -->
+        <div id="topic4" class="content-section topic4">
+            <a class="back-btn" onclick="showHome()">← 返回首页</a>
+            <h1>四、Prompt 与 Context 应用场景矩阵（四象限模型）</h1>
+
+            <div class="overview-summary">
+                <h3>总览</h3>
+                <p>基于「用户已知/未知」×「AI已知/未知」，划分四类Prompt设计场景：<strong>学习</strong>（我不知道，AI知道）、<strong>助理</strong>（我知道，AI知道）、<strong>共创</strong>（我不知道，AI不知道）、<strong>投喂</strong>（我知道，AI不知道）。不同象限对应不同的Prompt策略。</p>
+            </div>
+
+            <div class="section-nav">
+                <h4>选择查看内容：</h4>
+                <div class="nav-links">
+                    <div class="nav-link red-nav active-nav" onclick="showSubsection('topic4-sub1', this)">总览：四象限</div>
+                    <div class="nav-link red-nav" onclick="showSubsection('topic4-sub2', this)">学习象限</div>
+                    <div class="nav-link red-nav" onclick="showSubsection('topic4-sub3', this)">助理象限</div>
+                    <div class="nav-link red-nav" onclick="showSubsection('topic4-sub4', this)">共创象限</div>
+                    <div class="nav-link red-nav" onclick="showSubsection('topic4-sub5', this)">投喂象限</div>
+                </div>
+            </div>
+
+            <div id="topic4-sub1" class="subsection active">
+                <h2>四象限模型总览</h2>
+                <div class="highlight-box">
+                    基于「用户已知/未知」×「AI已知/未知」，划分四类Prompt设计场景
+                </div>
+
+                <div class="quadrant-grid">
+                    <div class="quadrant" style="border-color: #3498db; background: #f7fbff;">
+                        <h4 style="color: #3498db;">📘 学习（左上）</h4>
+                        <p><strong>场景定义：</strong>我不知道，AI知道</p>
+                        <p><strong>核心问题：</strong>如何提问？</p>
+                        <p><strong>Prompt 设计方向：</strong>开放式提问、引导式提问、少样本提示，挖掘AI知识</p>
+                    </div>
+                    <div class="quadrant" style="border-color: #27ae60; background: #f7fdf9;">
+                        <h4 style="color: #27ae60;">📗 助理（右上）</h4>
+                        <p><strong>场景定义：</strong>我知道，AI知道</p>
+                        <p><strong>核心问题：</strong>如何下发指令？</p>
+                        <p><strong>Prompt 设计方向：</strong>结构化指令、正向描述、思维链引导，精准控制输出</p>
+                    </div>
+                    <div class="quadrant" style="border-color: #f39c12; background: #fffcf5;">
+                        <h4 style="color: #f39c12;">📙 共创（左下）</h4>
+                        <p><strong>场景定义：</strong>我不知道，AI不知道</p>
+                        <p><strong>核心问题：</strong>如何协作？</p>
+                        <p><strong>Prompt 设计方向：</strong>探索式Prompt、分步推理、多轮迭代，共同解决未知问题</p>
+                    </div>
+                    <div class="quadrant" style="border-color: #e74c3c; background: #fff7f7;">
+                        <h4 style="color: #e74c3c;">📕 投喂（右下）</h4>
+                        <p><strong>场景定义：</strong>我知道，AI不知道</p>
+                        <p><strong>核心问题：</strong>如何引导？</p>
+                        <p><strong>Prompt 设计方向：</strong>注入Context（知识库、规则、数据）、RAG增强、示例教学，让AI学习新知识</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="topic4-sub2" class="subsection">
+                <h2>学习象限：我不知道，AI知道</h2>
+                <div class="info-box">
+                    <strong>核心问题：</strong>如何提问？
+                </div>
+
+                <h3>场景特征</h3>
+                <p>用户对某个领域不了解，但AI在预训练中已掌握相关知识。典型场景如：学习新概念、了解行业知识、获取事实信息。</p>
+
+                <h3>Prompt 设计方向</h3>
+                <ul>
+                    <li><strong>开放式提问：</strong>「请介绍量子计算的基本原理和应用场景」</li>
+                    <li><strong>引导式提问：</strong>「请从定义、核心技术和实际应用三个维度解释区块链」</li>
+                    <li><strong>少样本提示：</strong>给出期望的回答格式示例，让AI按格式输出</li>
+                </ul>
+
+                <div class="success-box">
+                    <strong>关键技巧：</strong>用结构化的问题框架引导AI输出，避免过于宽泛的提问导致回答缺乏深度。例如「请从X、Y、Z三个角度分析」比「请介绍一下X」更有效。
+                </div>
+            </div>
+
+            <div id="topic4-sub3" class="subsection">
+                <h2>助理象限：我知道，AI知道</h2>
+                <div class="info-box">
+                    <strong>核心问题：</strong>如何下发指令？
+                </div>
+
+                <h3>场景特征</h3>
+                <p>用户明确知道自己的需求和期望输出，AI也具备完成该任务的能力。典型场景如：文案撰写、代码生成、数据整理、翻译润色。</p>
+
+                <h3>Prompt 设计方向</h3>
+                <ul>
+                    <li><strong>结构化指令：</strong>用标准模板（角色-目标-技能-工作流）精确描述任务</li>
+                    <li><strong>正向描述：</strong>明确告诉AI「要做什么」，而非「不要做什么」</li>
+                    <li><strong>思维链引导：</strong>对复杂任务添加分步推理要求</li>
+                </ul>
+
+                <div class="success-box">
+                    <strong>关键技巧：</strong>这是最高效的象限，Prompt的核心是「精准控制」。通过结构化模板+输出约束，确保AI的输出与预期高度一致。
+                </div>
+            </div>
+
+            <div id="topic4-sub4" class="subsection">
+                <h2>共创象限：我不知道，AI不知道</h2>
+                <div class="info-box">
+                    <strong>核心问题：</strong>如何协作？
+                </div>
+
+                <h3>场景特征</h3>
+                <p>用户和AI都缺乏完整答案，需要通过多轮交互共同探索。典型场景如：创新方案设计、复杂问题拆解、跨领域融合。</p>
+
+                <h3>Prompt 设计方向</h3>
+                <ul>
+                    <li><strong>探索式Prompt：</strong>「让我们头脑风暴，探讨如何将AI应用于教育领域」</li>
+                    <li><strong>分步推理：</strong>将大问题拆解为小问题，逐步推进</li>
+                    <li><strong>多轮迭代：</strong>基于AI的初步输出，追问、修正、深化，逐步逼近最优解</li>
+                </ul>
+
+                <div class="highlight-box">
+                    <strong>关键技巧：</strong>共创象限不追求一次性完美输出，而是通过「提问→反馈→追问→深化」的迭代循环，逐步构建解决方案。每一轮对话都是对Context的丰富。
+                </div>
+            </div>
+
+            <div id="topic4-sub5" class="subsection">
+                <h2>投喂象限：我知道，AI不知道</h2>
+                <div class="info-box">
+                    <strong>核心问题：</strong>如何引导？
+                </div>
+
+                <h3>场景特征</h3>
+                <p>用户掌握AI未知的专业知识、最新数据或特定规则，需要将这些信息注入AI。典型场景如：企业内部知识问答、基于最新数据的分析、特定规则下的任务执行。</p>
+
+                <h3>Prompt 设计方向</h3>
+                <ul>
+                    <li><strong>注入Context：</strong>将知识库、规则、数据直接写入Prompt或通过RAG检索注入</li>
+                    <li><strong>RAG增强：</strong>构建外部知识库，按需检索相关片段注入Context</li>
+                    <li><strong>示例教学：</strong>通过Few-Shot示例，让AI学习特定格式和规则</li>
+                </ul>
+
+                <div class="success-box">
+                    <strong>关键技巧：</strong>投喂象限的核心是「Context质量」。注入的信息越精准、越结构化，AI的输出越可靠。RAG技术是此象限的核心工具。
+                </div>
+            </div>
+        </div>
+
+        <!-- 主题5：乔哈里视窗理论 -->
+        <div id="topic5" class="content-section topic5">
+            <a class="back-btn" onclick="showHome()">← 返回首页</a>
+            <h1>五、辅助理论：乔哈里视窗与沟通优化</h1>
+
+            <div class="overview-summary">
+                <h3>总览</h3>
+                <p>乔哈里视窗将人际沟通信息分为四个象限：<strong>公开象限</strong>（双方都知道）、<strong>隐私象限</strong>（用户知道AI不知道）、<strong>盲点象限</strong>（AI知道用户不知道）、<strong>潜能象限</strong>（双方都不知道）。该模型可直接映射到Prompt优化中。</p>
+            </div>
+
+            <div class="section-nav">
+                <h4>选择查看内容：</h4>
+                <div class="nav-links">
+                    <div class="nav-link purple-nav active-nav" onclick="showSubsection('topic5-sub1', this)">总览：四象限</div>
+                    <div class="nav-link purple-nav" onclick="showSubsection('topic5-sub2', this)">公开象限</div>
+                    <div class="nav-link purple-nav" onclick="showSubsection('topic5-sub3', this)">隐私象限</div>
+                    <div class="nav-link purple-nav" onclick="showSubsection('topic5-sub4', this)">盲点象限</div>
+                    <div class="nav-link purple-nav" onclick="showSubsection('topic5-sub5', this)">潜能象限</div>
+                </div>
+            </div>
+
+            <div id="topic5-sub1" class="subsection active">
+                <h2>乔哈里视窗模型总览</h2>
+                <div class="info-box">
+                    <strong>核心逻辑：</strong>人际沟通的信息分为四个象限，可用于优化Prompt的信息传递效率
+                </div>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th style="background:#9b59b6;">象限</th>
+                            <th style="background:#9b59b6;">定义</th>
+                            <th style="background:#9b59b6;">优化方向</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>公开象限</strong><br><span class="tag tag-blue">自己知道+他人知道</span></td>
+                            <td>双方都明确的信息</td>
+                            <td>直接指令，减少冗余</td>
+                        </tr>
+                        <tr>
+                            <td><strong>隐私象限</strong><br><span class="tag tag-orange">自己知道+他人不知道</span></td>
+                            <td>用户明确但AI未知的信息</td>
+                            <td>完整注入Context，补充背景知识</td>
+                        </tr>
+                        <tr>
+                            <td><strong>盲点象限</strong><br><span class="tag tag-green">自己不知道+他人知道</span></td>
+                            <td>用户未意识到但AI可识别的信息</td>
+                            <td>引导AI主动反馈，挖掘潜在需求</td>
+                        </tr>
+                        <tr>
+                            <td><strong>潜能象限</strong><br><span class="tag tag-red">自己不知道+他人不知道</span></td>
+                            <td>双方都未知的信息</td>
+                            <td>共创式Prompt，分步探索</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="highlight-box">
+                    <strong>核心应用：</strong>通过「自我提示」扩大公开象限，通过「恳请反馈」消除盲点象限，提升Prompt的信息完整性
+                </div>
+            </div>
+
+            <div id="topic5-sub2" class="subsection">
+                <h2>公开象限：自己知道 + 他人知道</h2>
+                <div class="info-box">
+                    <strong>定义：</strong>双方都明确的信息 — 用户知道自己要什么，AI也理解任务目标
+                </div>
+
+                <h3>在Prompt中的表现</h3>
+                <p>当用户需求清晰、任务目标明确，且AI具备相关能力时，沟通处于公开象限。这是最高效的沟通状态。</p>
+
+                <h3>优化方向</h3>
+                <ul>
+                    <li><strong>直接指令：</strong>无需过多解释背景，直接下达清晰指令</li>
+                    <li><strong>减少冗余：</strong>删除礼貌用语和重复描述，聚焦核心任务</li>
+                    <li><strong>结构化输出：</strong>明确输出格式，让结果可直接使用</li>
+                </ul>
+
+                <div class="success-box">
+                    <strong>示例：</strong>「将以下5条客户反馈按产品功能分类，输出为表格，列名：功能类别、反馈内容、情感倾向」— 需求清晰，AI完全理解，直接执行。
+                </div>
+            </div>
+
+            <div id="topic5-sub3" class="subsection">
+                <h2>隐私象限：自己知道 + 他人不知道</h2>
+                <div class="info-box">
+                    <strong>定义：</strong>用户明确但AI未知的信息 — 用户脑海中的背景知识、业务规则、隐含假设
+                </div>
+
+                <h3>在Prompt中的表现</h3>
+                <p>用户「以为AI知道」但实际AI并不了解的信息，是最常见的沟通失误来源。例如行业术语、公司内部流程、个人偏好等。</p>
+
+                <h3>优化方向</h3>
+                <ul>
+                    <li><strong>完整注入Context：</strong>将背景知识、业务规则显式写入Prompt</li>
+                    <li><strong>补充背景知识：</strong>不要假设AI了解你的业务，提供必要的上下文</li>
+                    <li><strong>定义术语：</strong>对行业专有名词给出明确定义</li>
+                </ul>
+
+                <div class="error-box">
+                    <strong>常见错误：</strong>「帮我写一份Q3复盘报告」— AI不知道你们的Q3目标、业务数据、团队情况，输出必然空洞。
+                </div>
+
+                <div class="success-box">
+                    <strong>正确做法：</strong>「帮我写一份Q3复盘报告。背景：Q3目标是DAU增长20%，实际增长15%。核心数据：[附数据]。关注点：用户留存率下降的原因分析。」
+                </div>
+            </div>
+
+            <div id="topic5-sub4" class="subsection">
+                <h2>盲点象限：自己不知道 + 他人知道</h2>
+                <div class="info-box">
+                    <strong>定义：</strong>用户未意识到但AI可识别的信息 — AI能发现用户忽略的角度、风险或需求
+                </div>
+
+                <h3>在Prompt中的表现</h3>
+                <p>用户提出需求时可能遗漏重要维度，而AI基于广博的知识可以补充。例如用户要求写营销方案但未考虑合规风险。</p>
+
+                <h3>优化方向</h3>
+                <ul>
+                    <li><strong>引导AI主动反馈：</strong>在Prompt中添加「请指出我可能遗漏的重要方面」</li>
+                    <li><strong>挖掘潜在需求：</strong>让AI反问澄清问题，帮助用户发现盲点</li>
+                    <li><strong>风险提示：</strong>要求AI在执行任务时标注潜在风险和注意事项</li>
+                </ul>
+
+                <div class="success-box">
+                    <strong>示例Prompt：</strong>「请帮我设计一个用户增长方案。在输出方案前，请先列出你可能需要向我确认的3-5个关键问题，以确保方案符合我的实际情况。」
+                </div>
+            </div>
+
+            <div id="topic5-sub5" class="subsection">
+                <h2>潜能象限：自己不知道 + 他人不知道</h2>
+                <div class="info-box">
+                    <strong>定义：</strong>双方都未知的信息 — 需要通过协作探索才能发现的新知识、新方案
+                </div>
+
+                <h3>在Prompt中的表现</h3>
+                <p>面对全新领域或创新性任务，用户和AI都没有现成答案。需要通过多轮对话、分步探索来逐步构建解决方案。</p>
+
+                <h3>优化方向</h3>
+                <ul>
+                    <li><strong>共创式Prompt：</strong>明确表达探索意图，邀请AI共同思考</li>
+                    <li><strong>分步探索：</strong>将大问题拆解为可逐步验证的小问题</li>
+                    <li><strong>迭代深化：</strong>基于每轮输出追问和修正，逐步逼近答案</li>
+                </ul>
+
+                <div class="highlight-box">
+                    <strong>示例Prompt：</strong>「我想探索AI在心理健康领域的创新应用。请先列出3个可能的方向，我们逐一讨论可行性和潜在挑战，最终形成一个可落地的方案框架。」
+                </div>
+            </div>
+        </div>
+
+        <!-- 主题6：知识点速览 -->
+        <div id="topic6" class="content-section topic6">
+            <a class="back-btn" onclick="showHome()">← 返回首页</a>
+            <h1>六、核心知识点速览表</h1>
+
+            <div class="overview-summary">
+                <h3>总览</h3>
+                <p>将前述七大模块的核心要点浓缩为速查表，方便快速回顾。点击各模块查看详细解读。</p>
+            </div>
+
+            <div class="section-nav">
+                <h4>选择查看内容：</h4>
+                <div class="nav-links">
+                    <div class="nav-link teal-nav active-nav" onclick="showSubsection('topic6-sub1', this)">速览总表</div>
+                    <div class="nav-link teal-nav" onclick="showSubsection('topic6-sub2', this)">底层公式与沟通</div>
+                    <div class="nav-link teal-nav" onclick="showSubsection('topic6-sub3', this)">Prompt与ICL</div>
+                    <div class="nav-link teal-nav" onclick="showSubsection('topic6-sub4', this)">Context与场景</div>
+                    <div class="nav-link teal-nav" onclick="showSubsection('topic6-sub5', this)">视窗与流程</div>
+                </div>
+            </div>
+
+            <div id="topic6-sub1" class="subsection active">
+                <h2>核心知识点速览总表</h2>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th style="background:#1abc9c;">模块</th>
+                            <th style="background:#1abc9c;">核心要点</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="tag tag-blue">底层公式</span></td>
+                            <td>AI效果 = LLM × (Task + Prompt)，Prompt 是能力释放的关键</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag tag-blue">沟通本质</span></td>
+                            <td>表达=本意+文意+解意，Prompt 是编码载体，需精准对齐本意</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag tag-green">Prompt 原则</span></td>
+                            <td>直接提问去礼貌、正向提问避否定、结构化分层级、分步引导促推理</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag tag-green">ICL 技术</span></td>
+                            <td>零/单/少样本提示，大模型通过上下文学习任务，无需微调</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag tag-orange">Context 核心</span></td>
+                            <td>承载历史对话、外部知识，4.0 新增RAG Chunks实现知识增强</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag tag-red">四象限场景</span></td>
+                            <td>学习（提问）、助理（指令）、共创（协作）、投喂（引导）</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag tag-purple">乔哈里视窗</span></td>
+                            <td>优化信息传递，扩大公开象限，消除盲点，提升Prompt有效性</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="topic6-sub2" class="subsection">
+                <h2>底层公式与沟通本质</h2>
+
+                <div class="formula-box">
+                    <div class="formula">AI效果 = LLM × (Task + Prompt)</div>
+                    <p>LLM决定能力上限，Task明确需求方向，Prompt是释放能力的关键桥梁。三者缺一不可。</p>
+                </div>
+
+                <div class="formula-box">
+                    <div class="formula">表达 = 本意 + 文意 + 解意</div>
+                    <p>本意是用户真实需求，文意是Prompt编码，解意是模型解码输出。Prompt工程的目标是最大化本意与解意的一致性。</p>
+                </div>
+
+                <div class="highlight-box">
+                    <strong>关键洞察：</strong>当输出不符合预期时，按「本意→文意→解意」链路排查，定位信息丢失或歧义发生的环节。
+                </div>
+            </div>
+
+            <div id="topic6-sub3" class="subsection">
+                <h2>Prompt 原则与 ICL 技术</h2>
+
+                <h3>Prompt 四大原则</h3>
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>1. 直接提问去礼貌</h4>
+                        <p>删除「请您」「麻烦」等冗余用语，聚焦核心指令</p>
+                    </div>
+                    <div class="card">
+                        <h4>2. 正向提问避否定</h4>
+                        <p>用「要做什么」替代「不要做什么」，明确目标</p>
+                    </div>
+                    <div class="card">
+                        <h4>3. 结构化分层级</h4>
+                        <p>用Markdown/标准模板定义角色、目标、技能、工作流</p>
+                    </div>
+                    <div class="card">
+                        <h4>4. 分步引导促推理</h4>
+                        <p>添加分步思考要求，提升结果逻辑性</p>
+                    </div>
+                </div>
+
+                <h3>ICL 三类提示方式</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th style="background:#1abc9c;">提示类型</th>
+                            <th style="background:#1abc9c;">示例数量</th>
+                            <th style="background:#1abc9c;">适用场景</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Zero-Shot</strong></td>
+                            <td>0个</td>
+                            <td>简单通用任务</td>
+                        </tr>
+                        <tr>
+                            <td><strong>One-Shot</strong></td>
+                            <td>1个</td>
+                            <td>格式对齐</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Few-Shot</strong></td>
+                            <td>2-5个</td>
+                            <td>复杂格式、垂直领域</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="topic6-sub4" class="subsection">
+                <h2>Context 核心与四象限场景</h2>
+
+                <h3>Context 四大作用</h3>
+                <div class="grid-2">
+                    <div class="card">
+                        <h4>消解指代</h4>
+                        <p>补充多轮对话上下文，理解「它」「这个」等指代</p>
+                    </div>
+                    <div class="card">
+                        <h4>知识增强</h4>
+                        <p>通过RAG注入外部知识库，弥补预训练知识不足</p>
+                    </div>
+                    <div class="card">
+                        <h4>行为约束</h4>
+                        <p>保持角色一致性和输出风格一致性</p>
+                    </div>
+                    <div class="card">
+                        <h4>任务补全</h4>
+                        <p>提供背景、数据、规则，明确任务边界</p>
+                    </div>
+                </div>
+
+                <h3>四象限场景速记</h3>
+                <div class="quadrant-grid">
+                    <div class="quadrant" style="border-color: #3498db; background: #f7fbff;">
+                        <h4 style="color: #3498db;">学习</h4>
+                        <p>我不知道，AI知道 → 如何提问？</p>
+                    </div>
+                    <div class="quadrant" style="border-color: #27ae60; background: #f7fdf9;">
+                        <h4 style="color: #27ae60;">助理</h4>
+                        <p>我知道，AI知道 → 如何下指令？</p>
+                    </div>
+                    <div class="quadrant" style="border-color: #f39c12; background: #fffcf5;">
+                        <h4 style="color: #f39c12;">共创</h4>
+                        <p>我不知道，AI不知道 → 如何协作？</p>
+                    </div>
+                    <div class="quadrant" style="border-color: #e74c3c; background: #fff7f7;">
+                        <h4 style="color: #e74c3c;">投喂</h4>
+                        <p>我知道，AI不知道 → 如何引导？</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="topic6-sub5" class="subsection">
+                <h2>乔哈里视窗与黄金流程</h2>
+
+                <h3>乔哈里视窗四象限</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th style="background:#1abc9c;">象限</th>
+                            <th style="background:#1abc9c;">优化方向</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>公开象限</strong>（双方都知道）</td>
+                            <td>直接指令，减少冗余</td>
+                        </tr>
+                        <tr>
+                            <td><strong>隐私象限</strong>（用户知道AI不知道）</td>
+                            <td>完整注入Context</td>
+                        </tr>
+                        <tr>
+                            <td><strong>盲点象限</strong>（AI知道用户不知道）</td>
+                            <td>引导AI主动反馈</td>
+                        </tr>
+                        <tr>
+                            <td><strong>潜能象限</strong>（双方都不知道）</td>
+                            <td>共创式Prompt，分步探索</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Prompt 设计黄金流程 7 步</h3>
+                <ol>
+                    <li><strong>明确本意</strong>：拆解用户真实需求（Task），避免模糊</li>
+                    <li><strong>正向指令</strong>：用直接、无否定的描述明确目标</li>
+                    <li><strong>结构化输入</strong>：用Markdown/标准模板定义角色、目标、技能、工作流</li>
+                    <li><strong>补充Context</strong>：注入历史对话、知识库、背景数据</li>
+                    <li><strong>引导推理</strong>：添加分步思考要求，提升结果逻辑性</li>
+                    <li><strong>示例对齐</strong>：根据任务复杂度添加0-5个示例（ICL）</li>
+                    <li><strong>输出约束</strong>：明确格式、字数、风格等要求</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- 主题7：设计黄金流程 -->
+        <div id="topic7" class="content-section topic7">
+            <a class="back-btn" onclick="showHome()">← 返回首页</a>
+            <h1>七、Prompt 设计黄金流程</h1>
+
+            <div class="overview-summary">
+                <h3>总览</h3>
+                <p>Prompt设计的7步黄金流程，从<strong>明确本意</strong>到<strong>输出约束</strong>，每一步都有明确的目标和操作方法。按此流程设计Prompt，可系统化提升AI输出质量。</p>
+            </div>
+
+            <div class="section-nav">
+                <h4>选择查看内容：</h4>
+                <div class="nav-links">
+                    <div class="nav-link indigo-nav active-nav" onclick="showSubsection('topic7-sub1', this)">总览：7步流程</div>
+                    <div class="nav-link indigo-nav" onclick="showSubsection('topic7-sub2', this)">步骤1-2</div>
+                    <div class="nav-link indigo-nav" onclick="showSubsection('topic7-sub3', this)">步骤3-4</div>
+                    <div class="nav-link indigo-nav" onclick="showSubsection('topic7-sub4', this)">步骤5-7</div>
+                </div>
+            </div>
+
+            <div id="topic7-sub1" class="subsection active">
+                <h2>Prompt 设计黄金流程总览</h2>
+
+                <div class="flow-container">
+                    <div class="flow-step">
+                        <div class="flow-number" style="background: #34495e;">1</div>
+                        <div class="flow-content">
+                            <strong>明确本意</strong>
+                            拆解用户真实需求（Task），避免模糊
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-number" style="background: #34495e;">2</div>
+                        <div class="flow-content">
+                            <strong>正向指令</strong>
+                            用直接、无否定的描述明确目标
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-number" style="background: #34495e;">3</div>
+                        <div class="flow-content">
+                            <strong>结构化输入</strong>
+                            用Markdown/标准模板定义角色、目标、技能、工作流
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-number" style="background: #34495e;">4</div>
+                        <div class="flow-content">
+                            <strong>补充Context</strong>
+                            注入历史对话、知识库、背景数据
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-number" style="background: #34495e;">5</div>
+                        <div class="flow-content">
+                            <strong>引导推理</strong>
+                            添加分步思考要求，提升结果逻辑性
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-number" style="background: #34495e;">6</div>
+                        <div class="flow-content">
+                            <strong>示例对齐</strong>
+                            根据任务复杂度添加0-5个示例（ICL）
+                        </div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-number" style="background: #34495e;">7</div>
+                        <div class="flow-content">
+                            <strong>输出约束</strong>
+                            明确格式、字数、风格等要求
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="topic7-sub2" class="subsection">
+                <h2>步骤 1-2：明确本意 + 正向指令</h2>
+
+                <h3>步骤1：明确本意</h3>
+                <div class="info-box">
+                    <strong>目标：</strong>拆解用户真实需求（Task），避免模糊
+                </div>
+                <ul>
+                    <li>问自己：我真正想要什么？</li>
+                    <li>将模糊需求转化为具体、可执行的任务描述</li>
+                    <li>区分「想要什么」和「不想要什么」，聚焦前者</li>
+                </ul>
+
+                <div class="error-box">
+                    <strong>模糊本意：</strong>「帮我写个方案」— 什么方案？给谁看？什么目的？
+                </div>
+                <div class="success-box">
+                    <strong>明确本意：</strong>「帮我写一份面向C端用户的AI产品推广方案，目标是提升注册转化率，预算5万以内」
+                </div>
+
+                <h3>步骤2：正向指令</h3>
+                <div class="info-box">
+                    <strong>目标：</strong>用直接、无否定的描述明确目标
+                </div>
+                <ul>
+                    <li>删除所有礼貌用语（请您、麻烦、辛苦）</li>
+                    <li>将「不要X」改写为「要Y」（Y是X的正向替代）</li>
+                    <li>用祈使句直接下达指令</li>
+                </ul>
+            </div>
+
+            <div id="topic7-sub3" class="subsection">
+                <h2>步骤 3-4：结构化输入 + 补充Context</h2>
+
+                <h3>步骤3：结构化输入</h3>
+                <div class="info-box">
+                    <strong>目标：</strong>用Markdown/标准模板定义角色、目标、技能、工作流
+                </div>
+                <div class="code-block"># 角色: [角色名称]
+[角色概述]
+
+## 目标:
+[1-2个核心目标]
+
+## 技能:
+1. [技能1]
+2. [技能2]
+
+## 工作流:
+1. [步骤1]
+2. [步骤2]
+3. [步骤3]</div>
+
+                <h3>步骤4：补充Context</h3>
+                <div class="info-box">
+                    <strong>目标：</strong>注入历史对话、知识库、背景数据
+                </div>
+                <ul>
+                    <li><strong>历史对话：</strong>补充多轮对话的上下文，消解指代</li>
+                    <li><strong>知识库：</strong>通过RAG检索注入相关外部知识</li>
+                    <li><strong>背景数据：</strong>提供任务所需的数据、规则、约束条件</li>
+                </ul>
+
+                <div class="highlight-box">
+                    <strong>关键原则：</strong>Context越精准、越结构化，AI输出越可靠。避免注入大量无关信息，聚焦与任务直接相关的内容。
+                </div>
+            </div>
+
+            <div id="topic7-sub4" class="subsection">
+                <h2>步骤 5-7：引导推理 + 示例对齐 + 输出约束</h2>
+
+                <h3>步骤5：引导推理</h3>
+                <div class="info-box">
+                    <strong>目标：</strong>添加分步思考要求，提升结果逻辑性
+                </div>
+                <p>在Prompt中添加「请按以下步骤思考并输出」，将复杂任务拆解为有序步骤，避免模型跳跃式输出。</p>
+
+                <h3>步骤6：示例对齐</h3>
+                <div class="info-box">
+                    <strong>目标：</strong>根据任务复杂度添加0-5个示例（ICL）
+                </div>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th style="background:#34495e;">任务复杂度</th>
+                            <th style="background:#34495e;">推荐示例数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>简单通用（翻译、摘要）</td>
+                            <td>0个（Zero-Shot）</td>
+                        </tr>
+                        <tr>
+                            <td>格式要求明确</td>
+                            <td>1个（One-Shot）</td>
+                        </tr>
+                        <tr>
+                            <td>复杂格式/垂直领域</td>
+                            <td>2-5个（Few-Shot）</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>步骤7：输出约束</h3>
+                <div class="info-box">
+                    <strong>目标：</strong>明确格式、字数、风格等要求
+                </div>
+                <ul>
+                    <li><strong>格式：</strong>表格、列表、段落、JSON等</li>
+                    <li><strong>字数：</strong>具体数字（如「控制在300字以内」）</li>
+                    <li><strong>风格：</strong>口语化、专业、学术、幽默等</li>
+                    <li><strong>语言：</strong>中文、英文、中英混合等</li>
+                </ul>
+
+                <div class="success-box">
+                    <strong>完整示例：</strong>「请分析以下3款竞品的功能差异。输出为对比表格，列名：功能点、产品A、产品B、产品C。重点差异用粗体标注。控制在500字以内，使用专业但易懂的语言。」
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function showContent(topicId) {
+            document.getElementById('home-view').style.display = 'none';
+
+            var sections = document.querySelectorAll('.content-section');
+            for (var i = 0; i < sections.length; i++) {
+                sections[i].classList.remove('active');
+            }
+
+            var targetSection = document.getElementById(topicId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+
+                var subsections = targetSection.querySelectorAll('.subsection');
+                for (var j = 0; j < subsections.length; j++) {
+                    subsections[j].classList.remove('active');
+                }
+
+                var navLinks = targetSection.querySelectorAll('.nav-link');
+                for (var k = 0; k < navLinks.length; k++) {
+                    navLinks[k].classList.remove('active-nav');
+                }
+
+                var firstSubsection = targetSection.querySelector('.subsection');
+                if (firstSubsection) {
+                    firstSubsection.classList.add('active');
+                }
+
+                var firstNav = targetSection.querySelector('.nav-link');
+                if (firstNav) {
+                    firstNav.classList.add('active-nav');
+                }
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showSubsection(subsectionId, clickedLink) {
+            var activeSection = document.querySelector('.content-section.active');
+            if (!activeSection) return;
+
+            var subsections = activeSection.querySelectorAll('.subsection');
+            for (var i = 0; i < subsections.length; i++) {
+                subsections[i].classList.remove('active');
+            }
+
+            var navLinks = activeSection.querySelectorAll('.nav-link');
+            for (var j = 0; j < navLinks.length; j++) {
+                navLinks[j].classList.remove('active-nav');
+            }
+
+            var targetSubsection = document.getElementById(subsectionId);
+            if (targetSubsection) {
+                targetSubsection.classList.add('active');
+            }
+
+            if (clickedLink) {
+                clickedLink.classList.add('active-nav');
+            }
+
+            window.scrollTo({ top: 200, behavior: 'smooth' });
+        }
+
+        function showHome() {
+            var sections = document.querySelectorAll('.content-section');
+            for (var i = 0; i < sections.length; i++) {
+                sections[i].classList.remove('active');
+            }
+
+            document.getElementById('home-view').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            showHome();
+        });
+    </script>
+</body>
+</html>
